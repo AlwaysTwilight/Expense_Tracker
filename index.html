@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Expense Tracker</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-wallet me-2"></i>Personal Expense Tracker
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-page="dashboard">
+                            <i class="fas fa-home me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="expenses">
+                            <i class="fas fa-receipt me-1"></i> Expenses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="analysis">
+                            <i class="fas fa-chart-pie me-1"></i> Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="budget">
+                            <i class="fas fa-coins me-1"></i> Budget
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="settings">
+                            <i class="fas fa-cog me-1"></i> Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="page">
+            <h1 class="page-title">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </h1>
+            
+            <!-- Budget Status -->
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="metric-card">
+                        <div class="label">Remaining Budget</div>
+                        <div class="value" id="remainingBudget">₹0.00</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-success" id="budgetProgressBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="metric-card">
+                        <div class="label">Daily Allowance</div>
+                        <div class="value" id="dailyAllowance">₹0.00</div>
+                        <div class="text-light"><small id="daysLeft">0 days left</small></div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="metric-card">
+                        <div class="label">Budget Used</div>
+                        <div class="value" id="budgetUsed">0%</div>
+                        <div class="text-light"><small id="totalBudget">Total: ₹0</small></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Methods Status -->
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="credit-card">
+                        <div class="title">Cash Balance</div>
+                        <div class="value" id="cashBalance">₹0.00</div>
+                        <div class="text-light"><small>Used: <span id="cashUsed">₹0.00</span></small></div>
+                        <i class="fas fa-money-bill-wave card-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="credit-card">
+                        <div class="title">Bank Balance</div>
+                        <div class="value" id="bankBalance">₹0.00</div>
+                        <div class="text-light"><small>Used (UPI): <span id="bankUsed">₹0.00</span></small></div>
+                        <i class="fas fa-university card-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="credit-card">
+                        <div class="title">Credit Available</div>
+                        <div class="value" id="creditAvailable">₹0.00</div>
+                        <div class="text-light"><small>Used: <span id="creditUsed">₹0.00</span></small></div>
+                        <i class="fas fa-credit-card card-icon"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity & Expense Breakdown -->
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-history me-2"></i>Recent Transactions
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="recentTransactionsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Category</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Recent transactions will be inserted here via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="#" class="btn btn-sm btn-outline-primary" data-page="expenses">View All</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-chart-pie me-2"></i>This Month's Expenses
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="expenseCategoryChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="#" class="btn btn-sm btn-outline-primary" data-page="analysis">Detailed Analysis</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Monthly Spending Trend -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-2"></i>Daily Expense Trend
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="expenseTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Budget Alerts -->
+            <div id="alertsContainer">
+                <!-- Alerts will be inserted here via JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Expenses Page -->
+        <div id="expenses-page" class="page d-none">
+            <h1 class="page-title">
+                <i class="fas fa-receipt me-2"></i>Manage Expenses
+            </h1>
+            
+            <!-- Add New Expense Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-plus me-2"></i>Add New Expense
+                </div>
+                <div class="card-body">
+                    <form id="addExpenseForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="expenseDate" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="expenseDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="paymentMethod" class="form-label">Payment Method</label>
+                                <select class="form-select" id="paymentMethod" required>
+                                    <option value="Cash">Cash</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Expense Tabs -->
+                        <ul class="nav nav-tabs" id="expenseTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="food-tab" data-bs-toggle="tab" data-bs-target="#food" type="button" role="tab" aria-controls="food" aria-selected="true">Food</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="misc-tab" data-bs-toggle="tab" data-bs-target="#misc" type="button" role="tab" aria-controls="misc" aria-selected="false">Miscellaneous</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="bills-tab" data-bs-toggle="tab" data-bs-target="#bills" type="button" role="tab" aria-controls="bills" aria-selected="false">Bills</button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="expenseTabsContent">
+                            <!-- Food Tab Content -->
+                            <div class="tab-pane fade show active" id="food" role="tabpanel" aria-labelledby="food-tab">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="foodSource" class="form-label">Food Source</label>
+                                        <select class="form-select" id="foodSource">
+                                            <option value="Zomato">Zomato</option>
+                                            <option value="Swiggy">Swiggy</option>
+                                            <option value="Local">Local</option>
+                                            <option value="Groceries">Groceries</option>
+                                            <option value="Restaurant">Restaurant</option>
+                                            <option value="Quick Commerce">Quick Commerce</option>
+                                            <option value="Others">Others</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="foodDescription" class="form-label">Description (Optional)</label>
+                                        <input type="text" class="form-control" id="foodDescription" placeholder="E.g., Lunch, Dinner, etc.">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <label for="foodItemsList" class="form-label">Food Items (One per line)</label>
+                                        <textarea class="form-control" id="foodItemsList" rows="4" placeholder="Enter prices, one per line:&#10;100&#10;50&#10;75"></textarea>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Total</label>
+                                        <div class="h3 mt-2 text-primary" id="foodTotal">₹0.00</div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="addFoodExpense">Add Food Expense</button>
+                            </div>
+                            
+                            <!-- Petrol Tab Content -->
+                            <div class="tab-pane fade" id="petrol" role="tabpanel" aria-labelledby="petrol-tab">
+                                <div id="petrolWarning" class="alert alert-info mt-3 d-none">
+                                    <i class="fas fa-info-circle me-2"></i>Petrol expenses can only be added on Mondays.
+                                </div>
+                                <div id="petrolForm">
+                                    <div class="row mb-3 mt-3">
+                                        <div class="col-md-6">
+                                            <label for="petrolAmount" class="form-label">Petrol Amount (₹)</label>
+                                            <input type="number" class="form-control" id="petrolAmount" min="0" step="50">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="petrolDescription" class="form-label">Description (Optional)</label>
+                                            <input type="text" class="form-control" id="petrolDescription" placeholder="Weekly petrol">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" id="addPetrolExpense">Add Petrol Expense</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Miscellaneous Tab Content -->
+                            <div class="tab-pane fade" id="misc" role="tabpanel" aria-labelledby="misc-tab">
+                                <div class="row mb-3 mt-3">
+                                    <div class="col-md-6">
+                                        <label for="miscAmount" class="form-label">Amount (₹)</label>
+                                        <input type="number" class="form-control" id="miscAmount" min="0" step="10">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="miscTag" class="form-label">Expense Tag</label>
+                                        <select class="form-select" id="miscTag">
+                                            <option value="Haircut">Haircut</option>
+                                            <option value="Recharge">Recharge</option>
+                                            <option value="Repair">Repair</option>
+                                            <option value="Travel">Travel</option>
+                                            <option value="Health">Health</option>
+                                            <option value="Gifts">Gifts</option>
+                                            <option value="Clothing">Clothing</option>
+                                            <option value="Electronics">Electronics</option>
+                                            <option value="Movie">Movie</option>
+                                            <option value="Concert">Concert</option>
+                                            <option value="Dining Out">Dining Out</option>
+                                            <option value="Shopping">Shopping</option>
+                                            <option value="Games">Games</option>
+                                            <option value="Other Entertainment">Other Entertainment</option>
+                                            <option value="Others">Others</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Custom tag input (hidden by default, shows when "Others" is selected) -->
+                                <div id="customTagContainer" class="row mb-3 d-none">
+                                    <div class="col-md-6">
+                                        <label for="customTag" class="form-label">Custom Tag</label>
+                                        <input type="text" class="form-control" id="customTag" placeholder="Enter custom expense tag">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="miscDescription" class="form-label">Description</label>
+                                        <input type="text" class="form-control" id="miscDescription" placeholder="Enter description">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="miscNotes" class="form-label">Additional Notes (Optional)</label>
+                                        <input type="text" class="form-control" id="miscNotes" placeholder="Any additional details">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="addMiscExpense">Add Expense</button>
+                                
+                                <!-- Miscellaneous Expenses List -->
+                                <div id="miscExpensesList" class="mt-4 d-none">
+                                    <h5>Current miscellaneous expenses:</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm" id="miscExpensesTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Tag</th>
+                                                    <th>Description</th>
+                                                    <th>Amount</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Misc expenses will be inserted here via JavaScript -->
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <th colspan="2" class="text-end">Total:</th>
+                                                    <th id="miscExpensesTotal">₹0.00</th>
+                                                    <th></th>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <button type="button" class="btn btn-success" id="saveMiscExpenses">Save All Expenses</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Bills Tab Content -->
+                            <div class="tab-pane fade" id="bills" role="tabpanel" aria-labelledby="bills-tab">
+                                <div class="row mt-3">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Credit Card Bill</h5>
+                                                <div class="form-check form-switch mb-3">
+                                                    <input class="form-check-input" type="checkbox" id="creditCardBillPaid">
+                                                    <label class="form-check-label" for="creditCardBillPaid">Already Paid</label>
+                                                </div>
+                                                <div id="creditCardBillForm">
+                                                    <div class="mb-3">
+                                                        <label for="creditCardBillAmount" class="form-label">Amount (₹)</label>
+                                                        <input type="number" class="form-control" id="creditCardBillAmount" min="0" step="100">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="creditCardBillPaymentMethod" class="form-label">Payment Method</label>
+                                                        <select class="form-select" id="creditCardBillPaymentMethod">
+                                                            <option value="Cash">Cash</option>
+                                                            <option value="UPI" selected>UPI</option>
+                                                            <option value="Credit Card">Credit Card</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="addCreditCardBill">Add Credit Card Bill</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Electricity Bill</h5>
+                                                <div class="form-check form-switch mb-3">
+                                                    <input class="form-check-input" type="checkbox" id="electricityBillPaid">
+                                                    <label class="form-check-label" for="electricityBillPaid">Already Paid</label>
+                                                </div>
+                                                <div id="electricityBillForm">
+                                                    <div class="mb-3">
+                                                        <label for="electricityBillAmount" class="form-label">Amount (₹)</label>
+                                                        <input type="number" class="form-control" id="electricityBillAmount" min="0" step="100">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="electricityBillPaymentMethod" class="form-label">Payment Method</label>
+                                                        <select class="form-select" id="electricityBillPaymentMethod">
+                                                            <option value="Cash">Cash</option>
+                                                            <option value="UPI" selected>UPI</option>
+                                                            <option value="Credit Card">Credit Card</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="addElectricityBill">Add Electricity Bill</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Water Bill</h5>
+                                                <div class="form-check form-switch mb-3">
+                                                    <input class="form-check-input" type="checkbox" id="waterBillPaid">
+                                                    <label class="form-check-label" for="waterBillPaid">Already Paid</label>
+                                                </div>
+                                                <div id="waterBillForm">
+                                                    <div class="mb-3">
+                                                        <label for="waterBillAmount" class="form-label">Amount (₹)</label>
+                                                        <input type="number" class="form-control" id="waterBillAmount" min="0" step="100">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="waterBillPaymentMethod" class="form-label">Payment Method</label>
+                                                        <select class="form-select" id="waterBillPaymentMethod">
+                                                            <option value="Cash">Cash</option>
+                                                            <option value="UPI" selected>UPI</option>
+                                                            <option value="Credit Card">Credit Card</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="addWaterBill">Add Water Bill</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Laundry Expense</h5>
+                                                <div class="form-check form-switch mb-3">
+                                                    <input class="form-check-input" type="checkbox" id="laundryPaid">
+                                                    <label class="form-check-label" for="laundryPaid">Already Paid</label>
+                                                </div>
+                                                <div id="laundryForm">
+                                                    <div class="mb-3">
+                                                        <label for="laundryAmount" class="form-label">Amount (₹)</label>
+                                                        <input type="number" class="form-control" id="laundryAmount" min="0" step="50">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="laundryPaymentMethod" class="form-label">Payment Method</label>
+                                                        <select class="form-select" id="laundryPaymentMethod">
+                                                            <option value="Cash">Cash</option>
+                                                            <option value="UPI" selected>UPI</option>
+                                                            <option value="Credit Card">Credit Card</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="addLaundryExpense">Add Laundry Expense</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">SIP Payment</h5>
+                                                <div class="form-check form-switch mb-3">
+                                                    <input class="form-check-input" type="checkbox" id="sipPaid">
+                                                    <label class="form-check-label" for="sipPaid">Already Paid</label>
+                                                </div>
+                                                <div id="sipForm">
+                                                    <div class="mb-3">
+                                                        <label for="sipAmount" class="form-label">Amount (₹)</label>
+                                                        <input type="number" class="form-control" id="sipAmount" min="0" step="100" value="2000">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="sipPaymentMethod" class="form-label">Payment Method</label>
+                                                        <select class="form-select" id="sipPaymentMethod">
+                                                            <option value="Cash">Cash</option>
+                                                            <option value="UPI" selected>UPI</option>
+                                                            <option value="Credit Card">Credit Card</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="addSipExpense">Add SIP Payment</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Rent Payment</h5>
+                                                <div class="form-check form-switch mb-3">
+                                                    <input class="form-check-input" type="checkbox" id="rentPaid">
+                                                    <label class="form-check-label" for="rentPaid">Already Paid</label>
+                                                </div>
+                                                <div id="rentForm">
+                                                    <div class="mb-3">
+                                                        <label for="rentAmount" class="form-label">Amount (₹)</label>
+                                                        <input type="number" class="form-control" id="rentAmount" min="0" step="100" value="1900">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="rentPaymentMethod" class="form-label">Payment Method</label>
+                                                        <select class="form-select" id="rentPaymentMethod">
+                                                            <option value="Cash">Cash</option>
+                                                            <option value="UPI" selected>UPI</option>
+                                                            <option value="Credit Card">Credit Card</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="addRentExpense">Add Rent Payment</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- All Expenses -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-list me-2"></i>All Expenses
+                    </div>
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" placeholder="Search expenses..." id="expenseSearchInput">
+                        <button class="btn btn-outline-primary" type="button" id="expenseSearchButton">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="allExpensesTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Subcategory</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                    <th>Payment</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- All expenses will be inserted here via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="expensesPagination" class="d-flex justify-content-center mt-3">
+                        <!-- Pagination will be inserted here via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analysis Page -->
+        <div id="analysis-page" class="page d-none">
+            <h1 class="page-title">
+                <i class="fas fa-chart-pie me-2"></i>Expense Analysis
+            </h1>
+            
+            <!-- Filters Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2"></i>Filters
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="dateRangeFilter" class="form-label">Date Range</label>
+                            <select class="form-select" id="dateRangeFilter">
+                                <option value="thisMonth">This Month</option>
+                                <option value="lastMonth">Last Month</option>
+                                <option value="last30Days">Last 30 Days</option>
+                                <option value="last7Days">Last 7 Days</option>
+                                <option value="thisYear">This Year</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="customDateStart" style="display: none;">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-4" id="customDateEnd" style="display: none;">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                    </div>
+                    
+                    <div class="collapse" id="advancedFilters">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Categories</label>
+                                <div class="filter-checkbox-container">
+                                    <div class="form-check">
+                                        <input class="form-check-input category-all" type="checkbox" id="category-all" checked>
+                                        <label class="form-check-label" for="category-all">
+                                            <strong>All Categories</strong>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input category-filter" type="checkbox" id="category-food" value="Food" checked>
+                                        <label class="form-check-label" for="category-food">
+                                            Food
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input category-filter" type="checkbox" id="category-bills" value="Bills" checked>
+                                        <label class="form-check-label" for="category-bills">
+                                            Bills
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input category-filter" type="checkbox" id="category-transportation" value="Transportation" checked>
+                                        <label class="form-check-label" for="category-transportation">
+                                            Transportation
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input category-filter" type="checkbox" id="category-entertainment" value="Entertainment" checked>
+                                        <label class="form-check-label" for="category-entertainment">
+                                            Entertainment
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input category-filter" type="checkbox" id="category-misc" value="Miscellaneous" checked>
+                                        <label class="form-check-label" for="category-misc">
+                                            Miscellaneous
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input category-filter" type="checkbox" id="category-services" value="Services" checked>
+                                        <label class="form-check-label" for="category-services">
+                                            Services
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Payment Method</label>
+                                <div class="filter-checkbox-container">
+                                    <div class="form-check">
+                                        <input class="form-check-input payment-all" type="checkbox" id="payment-all" checked>
+                                        <label class="form-check-label" for="payment-all">
+                                            <strong>All Payment Methods</strong>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input payment-filter" type="checkbox" id="payment-cash" value="Cash" checked>
+                                        <label class="form-check-label" for="payment-cash">
+                                            Cash
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input payment-filter" type="checkbox" id="payment-upi" value="UPI" checked>
+                                        <label class="form-check-label" for="payment-upi">
+                                            UPI
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input payment-filter" type="checkbox" id="payment-credit" value="Credit Card" checked>
+                                        <label class="form-check-label" for="payment-credit">
+                                            Credit Card
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <label for="amountRange" class="form-label mt-3">Amount Range</label>
+                                <div class="d-flex align-items-center">
+                                    <input type="range" class="form-range" id="minAmountInput">
+                                    <span class="mx-2">to</span>
+                                    <input type="range" class="form-range" id="maxAmountInput">
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span id="minAmount">₹0</span>
+                                    <span id="maxAmount">₹5000</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Subcategories</label>
+                                <div id="subcategoryFilters" class="filter-checkbox-container">
+                                    <div class="form-check">
+                                        <input class="form-check-input subcategory-all" type="checkbox" id="subcategory-all" checked>
+                                        <label class="form-check-label" for="subcategory-all">
+                                            <strong>All Subcategories</strong>
+                                        </label>
+                                    </div>
+                                    <!-- Subcategories will be populated dynamically via JavaScript -->
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <label for="descriptionSearch" class="form-label">Search in Description</label>
+                                    <input type="text" class="form-control" id="descriptionSearch" placeholder="Search term...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters">
+                            <i class="fas fa-cog me-1"></i>Advanced Filters
+                        </button>
+                        <button class="btn btn-primary" id="applyFilters">
+                            <i class="fas fa-filter me-1"></i>Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Summary Statistics -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="metric-card">
+                        <div class="label">Total Expenses</div>
+                        <div class="value" id="analysisTotalExpenses">₹0.00</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="metric-card">
+                        <div class="label">Avg. Daily Expense</div>
+                        <div class="value" id="analysisAvgDailyExpense">₹0.00</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="metric-card">
+                        <div class="label">Highest Expense</div>
+                        <div class="value" id="analysisHighestExpense">₹0.00</div>
+                        <div class="text-light"><small id="highestExpenseCategory">-</small></div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="metric-card">
+                        <div class="label">No. of Transactions</div>
+                        <div class="value" id="analysisNumTransactions">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Row 1 -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="fas fa-chart-pie me-2"></i>Expenses by Category
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="analysisCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="fas fa-chart-pie me-2"></i>Expenses by Subcategory
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="analysisSubcategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Row 2 -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="fas fa-chart-line me-2"></i>Daily Expense Trend
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="analysisTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <i class="fas fa-chart-bar me-2"></i>Weekly Expense Pattern
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="analysisWeeklyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method Analysis -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-money-bill-wave me-2"></i>Payment Method Analysis
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="paymentMethodChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="table-responsive">
+                                <table class="table" id="paymentMethodTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Payment Method</th>
+                                            <th>Amount</th>
+                                            <th>Percentage</th>
+                                            <th>Transactions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Payment method data will be inserted here via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Food Analysis Section (Conditional) -->
+            <div id="foodAnalysisSection" class="card mb-4 d-none">
+                <div class="card-header">
+                    <i class="fas fa-utensils me-2"></i>Food Expense Analysis
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <div class="label">Total Food Expenses</div>
+                                <div class="value" id="foodTotalExpenses">₹0.00</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <div class="label">Percentage of Budget</div>
+                                <div class="value" id="foodBudgetPercentage">0%</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <div class="label">Avg. Food Expense</div>
+                                <div class="value" id="foodAvgExpense">₹0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="foodSourceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="table-responsive">
+                                <table class="table" id="foodSourceTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Source</th>
+                                            <th>Amount</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Food sources will be inserted here via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Download Analysis -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-download me-2"></i>Download Analysis
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="downloadFormat" id="csvDataOnly" value="dataOnly" checked>
+                        <label class="form-check-label" for="csvDataOnly">
+                            CSV Data Only
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="downloadFormat" id="csvWithAnalysis" value="withAnalysis">
+                        <label class="form-check-label" for="csvWithAnalysis">
+                            CSV with Analysis Summary
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" id="downloadAnalysisBtn">
+                        <i class="fas fa-download me-1"></i>Download CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Budget Page -->
+        <div id="budget-page" class="page d-none">
+            <h1 class="page-title">
+                <i class="fas fa-coins me-2"></i>Budget Management
+            </h1>
+            
+            <!-- Savings Goal (Show at month start) -->
+            <div id="savingsGoalContainer" class="card mb-4 d-none">
+                <div class="card-header">
+                    <i class="fas fa-piggy-bank me-2"></i>Monthly Savings Goal
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Set your savings goal for this month! This amount will be reserved from your budget.
+                    </div>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="setSavingsGoal">
+                                <label class="form-check-label" for="setSavingsGoal">Set savings goal</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="savingsGoalAmountContainer" class="d-none">
+                                <label for="savingsGoalAmount" class="form-label">Amount to save this month (₹):</label>
+                                <input type="number" class="form-control" id="savingsGoalAmount" min="0" step="500" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary w-100" id="updateSavingsGoalBtn">Update Savings Goal</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Monthly Budget Setup -->
+<!-- Monthly Budget Setup -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-money-bill-wave me-2"></i>Monthly Budget Setup
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="budgetMonth" class="form-label">Month</label>
+                                    <select class="form-select" id="budgetMonth">
+                                        <!-- Month options -->
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="budgetYear" class="form-label">Year</label>
+                                    <select class="form-select" id="budgetYear">
+                                        <!-- Years will be populated dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="monthlyBudget" class="form-label">Monthly Budget (₹)</label>
+                                <input type="number" class="form-control" id="monthlyBudget" min="0" step="1000" value="15000">
+                            </div>
+                            <div class="mb-3">
+                                <label for="monthlySavingsGoal" class="form-label">Monthly Savings Goal (₹)</label>
+                                <input type="number" class="form-control" id="monthlySavingsGoal" min="0" step="500" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cashBalance" class="form-label">Cash Balance (₹)</label>
+                                <input type="number" class="form-control" id="initialCashBalance" min="0" step="100" value="2000">
+                            </div>
+                            <div class="mb-3">
+                                <label for="bankBalance" class="form-label">Bank Balance (₹)</label>
+                                <input type="number" class="form-control" id="initialBankBalance" min="0" step="100" value="8000">
+                                <small class="text-muted" id="totalCashBank">Total: ₹10000 (should equal monthly budget)</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="creditCardLimit" class="form-label">Credit Card Limit (₹)</label>
+                                <input type="number" class="form-control" id="creditCardLimit" min="0" step="1000" value="10000">
+                            </div>
+                            <div class="mb-3">
+                                <label for="previousMonthCredit" class="form-label">Previous Month Credit Card Balance (₹)</label>
+                                <input type="number" class="form-control" id="previousMonthCredit" min="0" step="100" value="0">
+                            </div>
+                            <button class="btn btn-primary w-100" id="updateBudgetBtn">Update Budget</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Budget History & Comparison -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-history me-2"></i>Budget History
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="budgetHistoryChart"></canvas>
+                    </div>
+                    <div class="table-responsive mt-4">
+                        <table class="table table-hover" id="budgetHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Month/Year</th>
+                                    <th>Total Budget</th>
+                                    <th>Expenses</th>
+                                    <th>Savings</th>
+                                    <th>Savings Goal</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Budget history will be inserted here via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings-page" class="page d-none">
+            <h1 class="page-title">
+                <i class="fas fa-cog me-2"></i>Settings
+            </h1>
+
+            <!-- Data Management -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-database me-2"></i>Data Management
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h5>Export Data</h5>
+                            <p>Export all your expense tracker data for backup.</p>
+                            <button class="btn btn-primary" id="exportDataBtn">
+                                <i class="fas fa-download me-1"></i>Export Data
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h5>Import Data</h5>
+                            <p>Import previously exported expense data.</p>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="importDataFile" accept=".json">
+                                <button class="btn btn-primary" id="importDataBtn">
+                                    <i class="fas fa-upload me-1"></i>Import
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h5>Reset Application</h5>
+                            <p class="text-danger">Warning: This will delete all your data and reset the application.</p>
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetConfirmModal">
+                                <i class="fas fa-trash-alt me-1"></i>Reset Application
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Default Values -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-sliders-h me-2"></i>Default Values
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="defaultBudget" class="form-label">Default Monthly Budget (₹)</label>
+                            <input type="number" class="form-control" id="defaultBudget" min="0" step="1000" value="15000">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="defaultSIP" class="form-label">Default SIP Amount (₹)</label>
+                            <input type="number" class="form-control" id="defaultSIP" min="0" step="100" value="2000">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="defaultRent" class="form-label">Default Rent Amount (₹)</label>
+                            <input type="number" class="form-control" id="defaultRent" min="0" step="100" value="1900">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="defaultCreditLimit" class="form-label">Default Credit Card Limit (₹)</label>
+                            <input type="number" class="form-control" id="defaultCreditLimit" min="0" step="1000" value="10000">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="defaultPaymentMethod" class="form-label">Default Payment Method</label>
+                            <select class="form-select" id="defaultPaymentMethod">
+                                <option value="Cash">Cash</option>
+                                <option value="UPI" selected>UPI</option>
+                                <option value="Credit Card">Credit Card</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="initialBankBalance" class="form-label">Default Bank Balance (₹)</label>
+                            <input type="number" class="form-control" id="initialBankBalance" min="0" step="100" value="8000">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="defaultSavingsGoal" class="form-label">Default Savings Goal (₹)</label>
+                            <input type="number" class="form-control" id="defaultSavingsGoal" min="0" step="100" value="1000">
+                        </div
+                    </div>
+                    <button class="btn btn-primary" id="saveDefaultsBtn">
+                        <i class="fas fa-save me-1"></i>Save Defaults
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Display Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-palette me-2"></i>Display Settings
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="themeSelector" class="form-label">Theme</label>
+                            <select class="form-select" id="themeSelector">
+                                <option value="light">Light Theme</option>
+                                <option value="dark">Dark Theme</option>
+                                <option value="blue">Blue Theme</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="currencyFormat" class="form-label">Currency Format</label>
+                            <select class="form-select" id="currencyFormat">
+                                <option value="₹">Indian Rupee (₹)</option>
+                                <option value="$">US Dollar ($)</option>
+                                <option value="€">Euro (€)</option>
+                                <option value="£">British Pound (£)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dateFormat" class="form-label">Date Format</label>
+                            <select class="form-select" id="dateFormat">
+                                <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                                <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                                <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="itemsPerPage" class="form-label">Items Per Page</label>
+                            <select class="form-select" id="itemsPerPage">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="saveDisplaySettingsBtn">
+                        <i class="fas fa-save me-1"></i>Save Display Settings
+                    </button>
+                </div>
+            </div>
+
+            <!-- About -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-info-circle me-2"></i>About
+                </div>
+                <div class="card-body">
+                    <h4>Personal Expense Tracker</h4>
+                    <p>Version 1.0.0</p>
+                    <p>A simple yet powerful application to track and analyze your personal expenses.</p>
+                    <p>All data is stored locally in your browser. No data is sent to any server.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications Container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
+        <div id="toastContainer"></div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this expense?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div class="modal fade" id="resetConfirmModal" tabindex="-1" aria-labelledby="resetConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resetConfirmModalLabel">Confirm Reset</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-danger">Warning: This will permanently delete all your expense data and reset the application to its initial state.</p>
+                    <p>This action cannot be undone. Please make sure you have exported your data if you want to keep a backup.</p>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="resetConfirmCheck">
+                        <label class="form-check-label" for="resetConfirmCheck">
+                            I understand that all data will be permanently deleted
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmResetBtn" disabled>Reset Application</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Application JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
