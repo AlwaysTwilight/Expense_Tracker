@@ -83,9 +83,9 @@ class ExpenseTracker {
                             HasSavingsGoal: true,
                             CreditCardBalance: this.settings.defaultCreditLimit,
                             CreditCardUsed: 0,
-                            PreviousMonthCredit: 0
-                            // Don't set initialCashBalance or initialBankBalance by default
-                            // They should only be set when explicitly changed in the budget page
+                            PreviousMonthCredit: 0,
+                            initialCashBalance: this.settings.defaultCashBalance,
+                            initialBankBalance: this.settings.defaultBankBalance
                         };
                         this.budgets.push(monthBudget);
                         this.saveData();
@@ -359,16 +359,17 @@ class ExpenseTracker {
             currency: '₹',
             dateFormat: 'dd/mm/yyyy',
             itemsPerPage: 25,
-            defaultBudget: 15000,
             defaultSIP: 2000,
             defaultRent: 1900,
             defaultCreditLimit: 10000,
             defaultPaymentMethod: 'UPI',
-            initialCashBalance: 2000,
-            initialBankBalance: 8000,
-            defaultSavingsGoal: 1000 // Default savings goal for each month
+            defaultCashBalance: 2000,
+            defaultBankBalance: 8000,
+            defaultSavingsGoal: 1000
         };
-        
+
+        this.settings.defaultBudget = this.settings.defaultCashBalance + this.settings.defaultBankBalance;
+
         // Save reset data
         this.saveData();
         this.saveSettings();
@@ -1230,6 +1231,42 @@ class ExpenseTracker {
                     this.settings.creditCardEnabled = creditCardEnabled;
                     
                     this.saveSettings();
+                    
+                    // Also update the current month's budget if it exists
+                    const currentMonth = this.currentMonth;
+                    const currentYear = this.currentYear;
+                    let monthBudget = this.getMonthBudget(currentMonth, currentYear);
+                    
+                    // If current month budget doesn't exist, create it with default values
+                    if (!monthBudget) {
+                        monthBudget = {
+                            Month: currentMonth,
+                            Year: currentYear,
+                            TotalBudget: defaultBudget,
+                            SIP: defaultSIP,
+                            Rent: defaultRent,
+                            CreditCard: 0,
+                            Electricity: 0,
+                            WaterBill: 0,
+                            Laundry: 0,
+                            CreditCardPaid: false,
+                            ElectricityPaid: false,
+                            WaterBillPaid: false,
+                            LaundryPaid: false,
+                            SIPPaid: false,
+                            RentPaid: false,
+                            SavingsGoal: defaultSavingsGoal,
+                            HasSavingsGoal: defaultSavingsGoal > 0,
+                            CreditCardBalance: defaultCreditLimit,
+                            CreditCardUsed: 0,
+                            PreviousMonthCredit: 0,
+                            initialCashBalance: defaultCashBalance,
+                            initialBankBalance: defaultBankBalance
+                        };
+                        this.budgets.push(monthBudget);
+                        this.saveData();
+                    }
+                    
                     this.showToast('Default values saved successfully!', 'success');
                     
                     // Update any open forms with new default values
@@ -1365,6 +1402,9 @@ class ExpenseTracker {
             // Get budget details for current month
             const budgetDetails = this.getBudgetDetails(this.currentMonth, this.currentYear);
             
+            // Get current balances including remaining amounts
+            const currentBalances = this.getCurrentBalances(this.currentMonth, this.currentYear);
+            
             // Update budget metrics, showing available budget after savings goal
             const remainingBudget = document.getElementById('remainingBudget');
             const dailyAllowance = document.getElementById('dailyAllowance');
@@ -1378,18 +1418,17 @@ class ExpenseTracker {
             if (budgetUsed) budgetUsed.textContent = `${budgetDetails.budget_used_pct.toFixed(1)}%`;
             if (totalBudget) totalBudget.textContent = `Total: ${this.settings.currency}${budgetDetails.effective_total.toFixed(2)}`;
             
-            // Update payment method cards
+            // Update payment method cards to show REMAINING balances
             const cashBalance = document.getElementById('cashBalance');
             const bankBalance = document.getElementById('bankBalance');
             const creditAvailable = document.getElementById('creditAvailable');
             
-            if (cashBalance) cashBalance.textContent = `${this.settings.currency}${budgetDetails.cash_balance.toFixed(2)}`;
-            if (bankBalance) bankBalance.textContent = `${this.settings.currency}${budgetDetails.bank_balance.toFixed(2)}`;
+            // Use the remaining balances instead of initial balances
+            if (cashBalance) cashBalance.textContent = `${this.settings.currency}${currentBalances.cashRemaining.toFixed(2)}`;
+            if (bankBalance) bankBalance.textContent = `${this.settings.currency}${currentBalances.bankRemaining.toFixed(2)}`;
             if (creditAvailable) creditAvailable.textContent = `${this.settings.currency}${budgetDetails.credit_card_remaining.toFixed(2)}`;
             
             // Update used amounts
-            const currentBalances = this.getCurrentBalances(this.currentMonth, this.currentYear);
-            
             const cashUsed = document.getElementById('cashUsed');
             const bankUsed = document.getElementById('bankUsed');
             const creditUsed = document.getElementById('creditUsed');
@@ -1429,12 +1468,20 @@ class ExpenseTracker {
     getCurrentBalances(month, year) {
         try {
             const monthBudget = this.getMonthBudget(month, year);
-            if (!monthBudget) {
-                return {
-                    cashUsed: 0,
-                    bankUsed: 0,
-                    creditUsed: 0
-                };
+            
+            // Default values if no budget exists
+            let initialCashBalance = this.settings.defaultCashBalance || 0;
+            let initialBankBalance = this.settings.defaultBankBalance || 0;
+            
+            // Use budget values if available
+            if (monthBudget) {
+                if (monthBudget.initialCashBalance !== undefined) {
+                    initialCashBalance = monthBudget.initialCashBalance;
+                }
+                
+                if (monthBudget.initialBankBalance !== undefined) {
+                    initialBankBalance = monthBudget.initialBankBalance;
+                }
             }
             
             // Get current month's expenses
@@ -1451,19 +1498,31 @@ class ExpenseTracker {
                 .filter(expense => expense.PaymentMethod === 'UPI')
                 .reduce((sum, expense) => sum + expense.Amount, 0);
                 
-            const creditCardExpenses = monthBudget.CreditCardUsed || 0;
+            const creditCardExpenses = monthBudget ? monthBudget.CreditCardUsed || 0 : 0;
+            
+            // Calculate remaining balances
+            const cashRemaining = initialCashBalance - cashExpenses;
+            const bankRemaining = initialBankBalance - upiExpenses;
             
             return {
                 cashUsed: cashExpenses,
                 bankUsed: upiExpenses,
-                creditUsed: creditCardExpenses
+                creditUsed: creditCardExpenses,
+                cashRemaining: cashRemaining,
+                bankRemaining: bankRemaining,
+                initialCashBalance: initialCashBalance,
+                initialBankBalance: initialBankBalance
             };
         } catch (error) {
             console.error('Error calculating current balances:', error);
             return {
                 cashUsed: 0,
                 bankUsed: 0,
-                creditUsed: 0
+                creditUsed: 0,
+                cashRemaining: this.settings.defaultCashBalance || 0,
+                bankRemaining: this.settings.defaultBankBalance || 0,
+                initialCashBalance: this.settings.defaultCashBalance || 0,
+                initialBankBalance: this.settings.defaultBankBalance || 0
             };
         }
     }
@@ -1788,11 +1847,18 @@ class ExpenseTracker {
             }
             
             // Check if there's enough balance for this expense
-            const monthBudget = this.getMonthBudget(date.toLocaleString('default', { month: 'long' }), date.getFullYear());
+            const month = date.toLocaleString('default', { month: 'long' });
+            const year = date.getFullYear();
+            const monthBudget = this.getMonthBudget(month, year);
+            const currentBalances = this.getCurrentBalances(month, year);
             
             if (paymentMethod === 'Cash') {
-                const cashBalance = monthBudget ? monthBudget.defaultCashBalance || 0 : this.settings.defaultCashBalance;
-                const cashUsed = this.getCurrentBalances(date.toLocaleString('default', { month: 'long' }), date.getFullYear()).cashUsed;
+                // FIXED: Use initialCashBalance instead of defaultCashBalance
+                const cashBalance = monthBudget && monthBudget.initialCashBalance !== undefined 
+                    ? monthBudget.initialCashBalance 
+                    : this.settings.defaultCashBalance;
+                    
+                const cashUsed = currentBalances.cashUsed || 0;
                 const remainingCash = cashBalance - cashUsed;
                 
                 if (foodTotal > remainingCash) {
@@ -1802,8 +1868,12 @@ class ExpenseTracker {
                     this.showToast(`Warning: Cash balance will be low after this expense! Remaining: ${this.settings.currency}${(remainingCash - foodTotal).toFixed(2)}`, 'warning');
                 }
             } else if (paymentMethod === 'UPI') {
-                const bankBalance = monthBudget ? monthBudget.defaultBankBalance || 0 : this.settings.defaultBankBalance;
-                const bankUsed = this.getCurrentBalances(date.toLocaleString('default', { month: 'long' }), date.getFullYear()).bankUsed;
+                // FIXED: Use initialBankBalance instead of defaultBankBalance
+                const bankBalance = monthBudget && monthBudget.initialBankBalance !== undefined 
+                    ? monthBudget.initialBankBalance 
+                    : this.settings.defaultBankBalance;
+                    
+                const bankUsed = currentBalances.bankUsed || 0;
                 const remainingBank = bankBalance - bankUsed;
                 
                 if (foodTotal > remainingBank) {
@@ -1837,8 +1907,8 @@ class ExpenseTracker {
                 Subcategory: foodSource,
                 Amount: foodTotal,
                 Description: description,
-                Month: date.toLocaleString('default', { month: 'long' }),
-                Year: date.getFullYear(),
+                Month: month,
+                Year: year,
                 PaymentMethod: paymentMethod
             };
             
@@ -1899,11 +1969,18 @@ class ExpenseTracker {
             }
             
             // Check if there's enough balance for this expense
-            const monthBudget = this.getMonthBudget(date.toLocaleString('default', { month: 'long' }), date.getFullYear());
+            const month = date.toLocaleString('default', { month: 'long' });
+            const year = date.getFullYear();
+            const monthBudget = this.getMonthBudget(month, year);
+            const currentBalances = this.getCurrentBalances(month, year);
             
             if (paymentMethod === 'Cash') {
-                const cashBalance = monthBudget ? monthBudget.initialCashBalance || 0 : this.settings.initialCashBalance;
-                const cashUsed = this.getCurrentBalances(date.toLocaleString('default', { month: 'long' }), date.getFullYear()).cashUsed;
+                // FIXED: Use initialCashBalance instead of initialCashBalance
+                const cashBalance = monthBudget && monthBudget.initialCashBalance !== undefined 
+                    ? monthBudget.initialCashBalance 
+                    : this.settings.defaultCashBalance;
+                    
+                const cashUsed = currentBalances.cashUsed || 0;
                 const remainingCash = cashBalance - cashUsed;
                 
                 if (amount > remainingCash) {
@@ -1913,8 +1990,12 @@ class ExpenseTracker {
                     this.showToast(`Warning: Cash balance will be low after this expense! Remaining: ${this.settings.currency}${(remainingCash - amount).toFixed(2)}`, 'warning');
                 }
             } else if (paymentMethod === 'UPI') {
-                const bankBalance = monthBudget ? monthBudget.initialBankBalance || 0 : this.settings.initialBankBalance;
-                const bankUsed = this.getCurrentBalances(date.toLocaleString('default', { month: 'long' }), date.getFullYear()).bankUsed;
+                // FIXED: Use initialBankBalance instead of initialBankBalance
+                const bankBalance = monthBudget && monthBudget.initialBankBalance !== undefined 
+                    ? monthBudget.initialBankBalance 
+                    : this.settings.defaultBankBalance;
+                    
+                const bankUsed = currentBalances.bankUsed || 0;
                 const remainingBank = bankBalance - bankUsed;
                 
                 if (amount > remainingBank) {
@@ -1948,8 +2029,8 @@ class ExpenseTracker {
                 Subcategory: 'Petrol',
                 Amount: amount,
                 Description: description,
-                Month: date.toLocaleString('default', { month: 'long' }),
-                Year: date.getFullYear(),
+                Month: month,
+                Year: year,
                 PaymentMethod: paymentMethod
             };
             
@@ -2158,8 +2239,12 @@ class ExpenseTracker {
             const cashExpenses = expensesByMethod['Cash'];
             if (cashExpenses.length > 0) {
                 const cashTotal = cashExpenses.reduce((sum, expense) => sum + expense.Amount, 0);
-                const cashBalance = monthBudget ? monthBudget.initialCashBalance || 0 : this.settings.initialCashBalance;
-                const cashUsed = currentBalances.cashUsed;
+                // FIXED: Use initialCashBalance instead of initialCashBalance
+                const cashBalance = monthBudget && monthBudget.initialCashBalance !== undefined 
+                    ? monthBudget.initialCashBalance 
+                    : this.settings.defaultCashBalance;
+                    
+                const cashUsed = currentBalances.cashUsed || 0;
                 const remainingCash = cashBalance - cashUsed;
                 
                 if (cashTotal > remainingCash) {
@@ -2174,8 +2259,12 @@ class ExpenseTracker {
             const upiExpenses = expensesByMethod['UPI'];
             if (upiExpenses.length > 0) {
                 const upiTotal = upiExpenses.reduce((sum, expense) => sum + expense.Amount, 0);
-                const bankBalance = monthBudget ? monthBudget.initialBankBalance || 0 : this.settings.initialBankBalance;
-                const bankUsed = currentBalances.bankUsed;
+                // FIXED: Use initialBankBalance instead of initialBankBalance
+                const bankBalance = monthBudget && monthBudget.initialBankBalance !== undefined 
+                    ? monthBudget.initialBankBalance 
+                    : this.settings.defaultBankBalance;
+                    
+                const bankUsed = currentBalances.bankUsed || 0;
                 const remainingBank = bankBalance - bankUsed;
                 
                 if (upiTotal > remainingBank) {
@@ -2186,6 +2275,7 @@ class ExpenseTracker {
                 }
             }
             
+            // Rest of the method remains the same...
             // Check credit card limit
             const creditExpenses = expensesByMethod['Credit Card'];
             if (creditExpenses.length > 0) {
@@ -2674,13 +2764,10 @@ class ExpenseTracker {
             const month = monthInput.value;
             const year = parseInt(yearInput.value);
             
-            const initialCashBalance = parseFloat(initialCashBalanceInput.value);
-            const initialBankBalance = parseFloat(initialBankBalanceInput.value);
+            const initialCashBalance = parseFloat(initialCashBalanceInput.value) || 0;
+            const initialBankBalance = parseFloat(initialBankBalanceInput.value) || 0;
             
-            const defaultCashBalance = this.settings.defaultCashBalance;
-            const defaultBankBalance = this.settings.defaultBankBalance;
-            
-            const monthlyBudget = parseFloat(monthlyBudgetInput.value) || (defaultCashBalance + defaultBankBalance);
+            const monthlyBudget = parseFloat(monthlyBudgetInput.value) || (initialCashBalance + initialBankBalance);
             const savingsGoal = parseFloat(monthlySavingsGoalInput.value) || this.settings.defaultSavingsGoal;
             const creditCardLimit = parseFloat(creditCardLimitInput.value) || this.settings.defaultCreditLimit;
             const previousMonthCredit = parseFloat(previousMonthCreditInput.value) || 0;
@@ -2689,20 +2776,9 @@ class ExpenseTracker {
             let monthBudget = this.getMonthBudget(month, year);
             
             if (monthBudget) {
-                // Only set initialCashBalance/initialBankBalance if they differ from defaults
-                if (initialCashBalance !== defaultCashBalance) {
-                    monthBudget.initialCashBalance = initialCashBalance;
-                } else {
-                    // If value matches default, remove the property to use default
-                    delete monthBudget.initialCashBalance;
-                }
-                
-                if (initialBankBalance !== defaultBankBalance) {
-                    monthBudget.initialBankBalance = initialBankBalance;
-                } else {
-                    // If value matches default, remove the property to use default
-                    delete monthBudget.initialBankBalance;
-                }
+                // Always set initialCashBalance and initialBankBalance
+                monthBudget.initialCashBalance = initialCashBalance;
+                monthBudget.initialBankBalance = initialBankBalance;
                 
                 // Update other budget properties
                 monthBudget.TotalBudget = monthlyBudget;
@@ -2732,17 +2808,10 @@ class ExpenseTracker {
                     HasSavingsGoal: savingsGoal > 0,
                     CreditCardBalance: creditCardLimit,
                     CreditCardUsed: 0,
-                    PreviousMonthCredit: previousMonthCredit
+                    PreviousMonthCredit: previousMonthCredit,
+                    initialCashBalance: initialCashBalance,
+                    initialBankBalance: initialBankBalance
                 };
-                
-                // Only set initialCashBalance/initialBankBalance if they differ from defaults
-                if (initialCashBalance !== defaultCashBalance) {
-                    monthBudget.initialCashBalance = initialCashBalance;
-                }
-                
-                if (initialBankBalance !== defaultBankBalance) {
-                    monthBudget.initialBankBalance = initialBankBalance;
-                }
                 
                 this.budgets.push(monthBudget);
             }
@@ -2765,75 +2834,78 @@ class ExpenseTracker {
         }
     }
 
-validateBudgetInputs() {
-    try {
-        const initialCashBalanceInput = document.getElementById('initialCashBalance');
-        const initialBankBalanceInput = document.getElementById('initialBankBalance');
-        const monthlyBudgetInput = document.getElementById('monthlyBudget');
-        
-        if (!initialCashBalanceInput || !initialBankBalanceInput || !monthlyBudgetInput) {
+    validateBudgetInputs() {
+        try {
+            const initialCashBalanceInput = document.getElementById('initialCashBalance');
+            const initialBankBalanceInput = document.getElementById('initialBankBalance');
+            const monthlyBudgetInput = document.getElementById('monthlyBudget');
+            
+            if (!initialCashBalanceInput || !initialBankBalanceInput || !monthlyBudgetInput) {
+                return false;
+            }
+            
+            const cashBalance = parseFloat(initialCashBalanceInput.value) || 0;
+            const bankBalance = parseFloat(initialBankBalanceInput.value) || 0;
+            const totalCashBank = cashBalance + bankBalance;
+            
+            const totalCashBankElement = document.getElementById('totalCashBank');
+            if (totalCashBankElement) {
+                totalCashBankElement.textContent = `Total: ${this.settings.currency}${totalCashBank.toFixed(2)}`;
+                totalCashBankElement.classList.remove('text-danger');
+                totalCashBankElement.classList.add('text-success');
+            }
+            
+            // Update monthly budget to match cash + bank
+            monthlyBudgetInput.value = totalCashBank.toFixed(0);
+            
+            return true;
+        } catch (error) {
+            console.error('Error validating budget inputs:', error);
             return false;
         }
-        
-        const cashBalance = parseFloat(initialCashBalanceInput.value) || 0;
-        const bankBalance = parseFloat(initialBankBalanceInput.value) || 0;
-        const totalCashBank = cashBalance + bankBalance;
-        
-        const totalCashBankElement = document.getElementById('totalCashBank');
-        if (totalCashBankElement) {
-            totalCashBankElement.textContent = `Total: ${this.settings.currency}${totalCashBank.toFixed(2)}`;
-            totalCashBankElement.classList.remove('text-danger');
-            totalCashBankElement.classList.add('text-success');
-        }
-        
-        // Update monthly budget to match cash + bank
-        monthlyBudgetInput.value = totalCashBank.toFixed(0);
-        
-        return true;
-    } catch (error) {
-        console.error('Error validating budget inputs:', error);
-        return false;
     }
-}
-    
+        
     // Budget calculations
     getBudgetDetails(month, year) {
         try {
             // Get month's budget
             const monthBudget = this.getMonthBudget(month, year);
             
+            // Default values for when monthBudget is null
+            const defaultValues = {
+                total_budget: this.settings.defaultBudget || 0,
+                daily_allowance: 500,
+                remaining_budget: this.settings.defaultBudget || 0,
+                budget_used_pct: 0,
+                fixed_expenses: 0,
+                variable_expenses: 0,
+                daily_expenses: 0,
+                savings_goal: 0,
+                has_savings_goal: false,
+                effective_total: this.settings.defaultBudget || 0,
+                days_left: 30,
+                credit_card_balance: this.settings.defaultCreditLimit || 0,
+                credit_card_used: 0,
+                credit_card_remaining: this.settings.defaultCreditLimit || 0,
+                cash_balance: this.settings.defaultCashBalance || 0,
+                bank_balance: this.settings.defaultBankBalance || 0
+            };
+            
             if (!monthBudget) {
-                return {
-                    total_budget: this.settings.defaultBudget,
-                    daily_allowance: 500,
-                    remaining_budget: this.settings.defaultBudget,
-                    budget_used_pct: 0,
-                    fixed_expenses: 0,
-                    variable_expenses: 0,
-                    daily_expenses: 0,
-                    savings_goal: 0,
-                    has_savings_goal: false,
-                    effective_total: this.settings.defaultBudget,
-                    days_left: 30,
-                    credit_card_balance: this.settings.defaultCreditLimit,
-                    credit_card_used: 0,
-                    credit_card_remaining: this.settings.defaultCreditLimit,
-                    cash_balance: this.settings.defaultCashBalance,
-                    bank_balance: this.settings.defaultBankBalance
-                };
+                return defaultValues;
             }
             
-            const totalBudget = monthBudget.TotalBudget || this.settings.defaultBudget;
+            const totalBudget = monthBudget.TotalBudget || this.settings.defaultBudget || 0;
             
             // Use initialCashBalance/initialBankBalance if set in budget, otherwise use defaults
             const cashBalance = monthBudget.initialCashBalance !== undefined ? 
-                monthBudget.initialCashBalance : this.settings.defaultCashBalance;
+                monthBudget.initialCashBalance : this.settings.defaultCashBalance || 0;
                 
             const bankBalance = monthBudget.initialBankBalance !== undefined ?
-                monthBudget.initialBankBalance : this.settings.defaultBankBalance;
+                monthBudget.initialBankBalance : this.settings.defaultBankBalance || 0;
             
             // Credit card details
-            const creditCardBalance = monthBudget.CreditCardBalance || this.settings.defaultCreditLimit;
+            const creditCardBalance = monthBudget.CreditCardBalance || this.settings.defaultCreditLimit || 0;
             const creditCardUsed = monthBudget.CreditCardUsed || 0;
             const creditCardRemaining = creditCardBalance - creditCardUsed;
             
@@ -2917,22 +2989,22 @@ validateBudgetInputs() {
         } catch (error) {
             console.error('Error getting budget details:', error);
             return {
-                total_budget: this.settings.defaultBudget,
+                total_budget: this.settings.defaultBudget || 0,
                 daily_allowance: 500,
-                remaining_budget: this.settings.defaultBudget,
+                remaining_budget: this.settings.defaultBudget || 0,
                 budget_used_pct: 0,
                 fixed_expenses: 0,
                 variable_expenses: 0,
                 daily_expenses: 0,
                 savings_goal: 0,
                 has_savings_goal: false,
-                effective_total: this.settings.defaultBudget,
+                effective_total: this.settings.defaultBudget || 0,
                 days_left: 30,
-                credit_card_balance: this.settings.defaultCreditLimit,
+                credit_card_balance: this.settings.defaultCreditLimit || 0,
                 credit_card_used: 0,
-                credit_card_remaining: this.settings.defaultCreditLimit,
-                cash_balance: this.settings.defaultCashBalance,
-                bank_balance: this.settings.defaultBankBalance
+                credit_card_remaining: this.settings.defaultCreditLimit || 0,
+                cash_balance: this.settings.defaultCashBalance || 0,
+                bank_balance: this.settings.defaultBankBalance || 0
             };
         }
     }
@@ -3012,6 +3084,7 @@ validateBudgetInputs() {
             console.error('Error loading budget form:', error);
         }
     }
+    
       
     // Budget history update
     updateBudgetHistory() {
