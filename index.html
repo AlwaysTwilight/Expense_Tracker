@@ -115,6 +115,35 @@
                     </div>
                 </div>
             </div>
+            <div id="alertsContainer">
+                <!-- Savings Warning Alert Template (hidden by default) -->
+                <div id="savingsWarningAlert" class="alert alert-warning alert-dismissible fade show d-none">
+                    <div class="d-flex align-items-center">
+                        <div class="alert-icon me-3 animate-pulse">
+                            <span style="font-size: 1.75rem;">⚠️</span>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">Warning: Using Savings</h5>
+                            <p id="savingsWarningText">You've exceeded your budget and are now using your savings.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                
+                <!-- Savings Info Alert Template (hidden by default) -->
+                <div id="savingsInfoAlert" class="alert alert-info alert-dismissible fade show d-none">
+                    <div class="d-flex align-items-center">
+                        <div class="alert-icon me-3">
+                            <i class="fas fa-piggy-bank fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">Savings Goal</h5>
+                            <p id="savingsInfoText">You have a savings goal for this month.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
             
             <!-- Recent Activity & Expense Breakdown -->
             <div class="row">
@@ -171,11 +200,6 @@
                         <canvas id="expenseTrendChart"></canvas>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Budget Alerts -->
-            <div id="alertsContainer">
-                <!-- Alerts will be inserted here via JavaScript -->
             </div>
         </div>
         
