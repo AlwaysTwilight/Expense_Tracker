@@ -7,6 +7,8 @@ class ExpenseTracker {
         this.miscExpenses = [];
         this.chartInstances = {};
         this.settings = {};
+
+        this.addWarningStyles();
         
         // Load settings and data from localStorage
         this.loadSettings();
@@ -116,6 +118,22 @@ class ExpenseTracker {
         } catch (error) {
             console.error('Error checking monthly reset:', error);
         }
+    }
+
+    addWarningStyles() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+            
+            .animate-pulse {
+                animation: pulse 2s infinite;
+            }
+        `;
+        document.head.appendChild(styleElement);
     }
     
     // Settings management
@@ -507,6 +525,26 @@ class ExpenseTracker {
                 }
             }
             
+            function updateBudgetAlertsContainer() {
+                const dashboardPage = document.getElementById('dashboard-page');
+                
+                if (dashboardPage && !document.getElementById('alertsContainer')) {
+                    // Create alerts container if it doesn't exist
+                    const alertsContainer = document.createElement('div');
+                    alertsContainer.id = 'alertsContainer';
+                    alertsContainer.className = 'budget-alerts-wrapper mt-4';
+                    
+                    // Insert after the monthly spending trend section
+                    const lastChartCard = dashboardPage.querySelector('.card:last-of-type');
+                    if (lastChartCard) {
+                        lastChartCard.parentNode.insertBefore(alertsContainer, lastChartCard.nextSibling);
+                    } else {
+                        // If we can't find the chart card, just append to dashboard
+                        dashboardPage.appendChild(alertsContainer);
+                    }
+                }
+            }
+
             // Add Petrol option to Misc dropdown
             const miscTagSelect = document.getElementById('miscTag');
             if (miscTagSelect) {
@@ -1391,6 +1429,19 @@ class ExpenseTracker {
             
             // Store current page
             this.currentPage = pageName;
+            
+            // Special page initializations
+            if (pageName === 'budget') {
+                // Explicitly reload budget form when showing budget page
+                const month = document.getElementById('budgetMonth')?.value || this.currentMonth;
+                const year = parseInt(document.getElementById('budgetYear')?.value || this.currentYear);
+                this.loadBudgetForm(month, year);
+                this.updateBudgetHistory();
+            } else if (pageName === 'analysis') {
+                this.updateAnalysisPage();
+            } else if (pageName === 'dashboard') {
+                this.updateDashboard();
+            }
         } catch (error) {
             console.error('Error showing page:', error);
         }
@@ -1412,11 +1463,24 @@ class ExpenseTracker {
             const budgetUsed = document.getElementById('budgetUsed');
             const totalBudget = document.getElementById('totalBudget');
             
-            if (remainingBudget) remainingBudget.textContent = `${this.settings.currency}${budgetDetails.remaining_budget.toFixed(2)}`;
+            // Never show negative remaining budget - display as 0 instead
+            if (remainingBudget) {
+                const displayRemainingBudget = Math.max(0, budgetDetails.remaining_budget);
+                remainingBudget.textContent = `${this.settings.currency}${displayRemainingBudget.toFixed(2)}`;
+            }
+            
             if (dailyAllowance) dailyAllowance.textContent = `${this.settings.currency}${budgetDetails.daily_allowance.toFixed(2)}`;
             if (daysLeft) daysLeft.textContent = `${budgetDetails.days_left || 0} days left`;
             if (budgetUsed) budgetUsed.textContent = `${budgetDetails.budget_used_pct.toFixed(1)}%`;
-            if (totalBudget) totalBudget.textContent = `Total: ${this.settings.currency}${budgetDetails.effective_total.toFixed(2)}`;
+            
+            // Update total budget display to include savings info if there's a savings goal
+            if (totalBudget) {
+                if (budgetDetails.has_savings_goal && budgetDetails.savings_goal > 0) {
+                    totalBudget.textContent = `Total: ${this.settings.currency}${budgetDetails.total_budget.toFixed(2)} (Savings: ${this.settings.currency}${budgetDetails.savings_goal.toFixed(2)})`;
+                } else {
+                    totalBudget.textContent = `Total: ${this.settings.currency}${budgetDetails.effective_total.toFixed(2)}`;
+                }
+            }
             
             // Update payment method cards to show REMAINING balances
             const cashBalance = document.getElementById('cashBalance');
@@ -1449,6 +1513,46 @@ class ExpenseTracker {
                     progressBar.className = 'progress-bar bg-warning';
                 } else {
                     progressBar.className = 'progress-bar bg-success';
+                }
+            }
+            
+            // Add savings warning alert when needed
+            const alertsContainer = document.getElementById('alertsContainer');
+            const savingsWarningAlert = document.getElementById('savingsWarningAlert');
+            const savingsInfoAlert = document.getElementById('savingsInfoAlert');
+            
+            if (alertsContainer && savingsWarningAlert && savingsInfoAlert) {
+                // Hide both alerts by default
+                savingsWarningAlert.classList.add('d-none');
+                savingsInfoAlert.classList.add('d-none');
+                
+                // Check if savings is being used (when remaining budget is negative or zero)
+                if (budgetDetails.remaining_budget <= 0 && budgetDetails.has_savings_goal && budgetDetails.savings_goal > 0) {
+                    const savingsBeingUsed = Math.min(budgetDetails.savings_goal, Math.abs(budgetDetails.remaining_budget));
+                    const savingsRemaining = Math.max(0, budgetDetails.savings_goal - Math.abs(budgetDetails.remaining_budget));
+                    
+                    // Update the warning text
+                    const savingsWarningText = document.getElementById('savingsWarningText');
+                    if (savingsWarningText) {
+                        savingsWarningText.innerHTML = `You've exceeded your budget by ${this.settings.currency}${Math.abs(budgetDetails.remaining_budget).toFixed(2)} and are now using your savings. 
+                        ${this.settings.currency}${savingsBeingUsed.toFixed(2)} from your savings goal of ${this.settings.currency}${budgetDetails.savings_goal.toFixed(2)} is being used.
+                        Remaining savings: ${this.settings.currency}${savingsRemaining.toFixed(2)}`;
+                    }
+                    
+                    // Show the warning alert
+                    savingsWarningAlert.classList.remove('d-none');
+                } 
+                // Show info about savings goal if it exists but isn't being used yet
+                else if (budgetDetails.has_savings_goal && budgetDetails.savings_goal > 0) {
+                    // Update the info text
+                    const savingsInfoText = document.getElementById('savingsInfoText');
+                    if (savingsInfoText) {
+                        savingsInfoText.innerHTML = `You have a savings goal of ${this.settings.currency}${budgetDetails.savings_goal.toFixed(2)} for this month. 
+                        This amount is reserved from your total budget.`;
+                    }
+                    
+                    // Show the info alert
+                    savingsInfoAlert.classList.remove('d-none');
                 }
             }
             
@@ -2864,7 +2968,44 @@ class ExpenseTracker {
             return false;
         }
     }
-        
+    
+    clearAnalysisCharts() {
+        try {
+            // Destroy existing charts in a safer way
+            if (this.chartInstances.analysisCategoryChart instanceof Chart) {
+                this.chartInstances.analysisCategoryChart.destroy();
+                this.chartInstances.analysisCategoryChart = null;
+            }
+            
+            if (this.chartInstances.analysisSubcategoryChart instanceof Chart) {
+                this.chartInstances.analysisSubcategoryChart.destroy();
+                this.chartInstances.analysisSubcategoryChart = null;
+            }
+            
+            if (this.chartInstances.analysisTrendChart instanceof Chart) {
+                this.chartInstances.analysisTrendChart.destroy();
+                this.chartInstances.analysisTrendChart = null;
+            }
+            
+            if (this.chartInstances.analysisWeeklyChart instanceof Chart) {
+                this.chartInstances.analysisWeeklyChart.destroy();
+                this.chartInstances.analysisWeeklyChart = null;
+            }
+            
+            if (this.chartInstances.foodSourceChart instanceof Chart) {
+                this.chartInstances.foodSourceChart.destroy();
+                this.chartInstances.foodSourceChart = null;
+            }
+            
+            if (this.chartInstances.paymentMethodChart instanceof Chart) {
+                this.chartInstances.paymentMethodChart.destroy();
+                this.chartInstances.paymentMethodChart = null;
+            }
+        } catch (error) {
+            console.error('Error clearing analysis charts:', error);
+        }
+    }
+
     // Budget calculations
     getBudgetDetails(month, year) {
         try {
@@ -2941,7 +3082,7 @@ class ExpenseTracker {
             const variableExpenses = cashUpiExpenses
                 .filter(expense => 
                     ['Bills', 'Services'].includes(expense.Category) && 
-                    !['SIP', 'Rent'].includes(expense.Subcategory) // Exclude SIP and Rent as they're counted in fixedExpenses
+                    !['SIP', 'Rent'].includes(expense.Subcategory) 
                 )
                 .reduce((sum, expense) => sum + expense.Amount, 0);
             
@@ -2962,11 +3103,13 @@ class ExpenseTracker {
             
             let dailyAllowance = 0;
             if (daysLeft > 0) {
-                dailyAllowance = remainingBudget / daysLeft;
+                // If remaining budget is negative, daily allowance is 0
+                dailyAllowance = Math.max(0, remainingBudget / daysLeft);
             }
             
-            // Calculate budget used percentage
-            const budgetUsedPct = effectiveTotal > 0 ? 100 - (remainingBudget / effectiveTotal * 100) : 0;
+            // Calculate budget used percentage based on effective total (excluding savings)
+            // Prevent division by zero
+            const budgetUsedPct = effectiveTotal > 0 ? Math.min(100, (totalExpensesFromData / effectiveTotal * 100)) : 0;
             
             return {
                 total_budget: totalBudget,
@@ -2988,24 +3131,7 @@ class ExpenseTracker {
             };
         } catch (error) {
             console.error('Error getting budget details:', error);
-            return {
-                total_budget: this.settings.defaultBudget || 0,
-                daily_allowance: 500,
-                remaining_budget: this.settings.defaultBudget || 0,
-                budget_used_pct: 0,
-                fixed_expenses: 0,
-                variable_expenses: 0,
-                daily_expenses: 0,
-                savings_goal: 0,
-                has_savings_goal: false,
-                effective_total: this.settings.defaultBudget || 0,
-                days_left: 30,
-                credit_card_balance: this.settings.defaultCreditLimit || 0,
-                credit_card_used: 0,
-                credit_card_remaining: this.settings.defaultCreditLimit || 0,
-                cash_balance: this.settings.defaultCashBalance || 0,
-                bank_balance: this.settings.defaultBankBalance || 0
-            };
+            return defaultValues;
         }
     }
     
@@ -3330,19 +3456,19 @@ class ExpenseTracker {
                     endDate = today;
             }
             
-            // Get selected categories
+            // Get selected categories - if none are selected, include all
             const selectedCategories = [];
             document.querySelectorAll('.category-filter:checked').forEach(checkbox => {
                 selectedCategories.push(checkbox.value);
             });
             
-            // Get selected payment methods
+            // Get selected payment methods - if none are selected, include all
             const selectedPaymentMethods = [];
             document.querySelectorAll('.payment-filter:checked').forEach(checkbox => {
                 selectedPaymentMethods.push(checkbox.value);
             });
             
-            // Get selected subcategories
+            // Get selected subcategories - if none are selected, include all
             const selectedSubcategories = [];
             document.querySelectorAll('.subcategory-filter:checked').forEach(checkbox => {
                 selectedSubcategories.push(checkbox.value);
@@ -3362,15 +3488,30 @@ class ExpenseTracker {
                 maxAmount = parseFloat(maxAmountEl.value) || Number.MAX_SAFE_INTEGER;
             }
             
-            // Filter expenses
+            // Filter expenses - fix the filter to properly check if arrays are empty
             let filteredExpenses = this.expenses.filter(expense => {
-                const expenseDate = new Date(expense.Date);
-                return expenseDate >= startDate && expenseDate <= endDate &&
-                       (selectedCategories.length === 0 || selectedCategories.includes(expense.Category)) &&
-                       (selectedPaymentMethods.length === 0 || selectedPaymentMethods.includes(expense.PaymentMethod)) &&
-                       (selectedSubcategories.length === 0 || selectedSubcategories.includes(expense.Subcategory)) &&
-                       (descriptionSearch === '' || expense.Description.toLowerCase().includes(descriptionSearch)) &&
-                       expense.Amount >= minAmount && expense.Amount <= maxAmount;
+                try {
+                    const expenseDate = new Date(expense.Date);
+                    
+                    return (
+                        // Date range check
+                        expenseDate >= startDate && 
+                        expenseDate <= endDate &&
+                        // Category check - if no categories selected, include all
+                        (selectedCategories.length === 0 || selectedCategories.includes(expense.Category)) &&
+                        // Payment method check - if no methods selected, include all
+                        (selectedPaymentMethods.length === 0 || selectedPaymentMethods.includes(expense.PaymentMethod)) &&
+                        // Subcategory check - if no subcategories selected, include all
+                        (selectedSubcategories.length === 0 || selectedSubcategories.includes(expense.Subcategory)) &&
+                        // Description search
+                        (descriptionSearch === '' || expense.Description.toLowerCase().includes(descriptionSearch)) &&
+                        // Amount range
+                        expense.Amount >= minAmount && expense.Amount <= maxAmount
+                    );
+                } catch (error) {
+                    console.error('Error filtering expense:', expense, error);
+                    return false;
+                }
             });
             
             // Save filtered expenses for use in other methods
@@ -3427,7 +3568,8 @@ class ExpenseTracker {
             highestExpenseCategory.textContent = highestExpense.category;
             analysisNumTransactions.textContent = filteredExpenses.length.toString();
             
-            // Update charts
+            // Update charts - make sure to destroy old charts first
+            this.clearAnalysisCharts();
             this.updateAnalysisCharts(filteredExpenses, startDate, endDate);
             
             // Check for food expenses and update food analysis section if needed
@@ -4900,6 +5042,7 @@ class ExpenseTracker {
         }
     }
     
+
     showToast(message, type = 'info') {
         try {
             const toastContainer = document.getElementById('toastContainer');
@@ -4974,5 +5117,5 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Error initializing application:', error);
         alert('Error initializing the application. Please refresh the page and try again.');
     }
+    addWarningStyles()
 });
-
