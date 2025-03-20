@@ -1,4 +1,6 @@
 // Data and state management
+
+
 class ExpenseTracker {
     constructor() {
         // Initialize data structures
@@ -23,6 +25,8 @@ class ExpenseTracker {
         // Check if it's the start of the month (1-5th day)
         this.isStartOfMonth = now.getDate() <= 5;
         
+        this.setupTodayExpensesModal();
+
         // Check if the month has been reset already to avoid resetting multiple times
         this.checkMonthlyReset();
         
@@ -34,6 +38,9 @@ class ExpenseTracker {
         
         // Apply theme
         this.applyTheme(this.settings.theme || 'light');
+        
+        
+        window.expenseTracker = this;
         
         // Show initial page
         this.showPage('dashboard');
@@ -47,6 +54,7 @@ class ExpenseTracker {
             
             // Apply credit card visibility settings
             this.updateCreditCardVisibility();
+            this.updateSIPVisibility();
         });
     }
 
@@ -149,6 +157,11 @@ class ExpenseTracker {
                     this.settings.creditCardEnabled = true;
                 }
                 
+                // Add SIP enabled setting if it doesn't exist
+                if (this.settings.sipEnabled === undefined) {
+                    this.settings.sipEnabled = true;
+                }
+                
                 // Make sure all needed settings have default values if missing
                 this.settings.defaultCashBalance = this.settings.defaultCashBalance || 2000;
                 this.settings.defaultBankBalance = this.settings.defaultBankBalance || 8000;
@@ -167,7 +180,8 @@ class ExpenseTracker {
                     defaultCashBalance: 2000,
                     defaultBankBalance: 8000,
                     defaultSavingsGoal: 1000,
-                    creditCardEnabled: true // Setting for credit card toggle
+                    creditCardEnabled: true, // Setting for credit card toggle
+                    sipEnabled: true // New setting for SIP toggle
                 };
                 this.saveSettings();
             }
@@ -191,7 +205,8 @@ class ExpenseTracker {
                 defaultCashBalance: 2000,
                 defaultBankBalance: 8000,
                 defaultSavingsGoal: 1000,
-                creditCardEnabled: true
+                creditCardEnabled: true,
+                sipEnabled: true
             };
             
             // Calculate default budget based on cash and bank balance
@@ -199,7 +214,7 @@ class ExpenseTracker {
             this.saveSettings();
         }
     }
-    
+
     saveSettings() {
         try {
             console.log('Saving settings:', JSON.stringify(this.settings));
@@ -218,12 +233,40 @@ class ExpenseTracker {
             // Update bill values with new defaults
             this.setDefaultBillValues();
             
+            // Update any existing budget for the current month with new default values
+            const currentMonth = this.currentMonth;
+            const currentYear = this.currentYear;
+            let monthBudget = this.getMonthBudget(currentMonth, currentYear);
+            
+            if (monthBudget) {
+                // Only update SIP value if it hasn't been paid yet
+                if (!monthBudget.SIPPaid) {
+                    monthBudget.SIP = this.settings.defaultSIP;
+                }
+                
+                // Only update Rent value if it hasn't been paid yet
+                if (!monthBudget.RentPaid) {
+                    monthBudget.Rent = this.settings.defaultRent;
+                }
+                
+                // If SIP is disabled, mark it as paid
+                if (!this.settings.sipEnabled) {
+                    monthBudget.SIPPaid = true;
+                }
+                
+                this.saveData();
+            }
+            
+            // Update credit card and SIP visibility
+            this.updateCreditCardVisibility();
+            this.updateSIPVisibility();
+            
         } catch (error) {
             console.error('Error saving settings:', error);
             this.showToast('Error saving settings.', 'error');
         }
     }
-    
+
     applyTheme(theme) {
         // Remove any existing theme classes
         document.body.classList.remove('dark-theme', 'blue-theme');
@@ -742,27 +785,31 @@ class ExpenseTracker {
     }
     
     setDefaultBillValues() {
-        // Get current month's budget for updated values
-        const monthBudget = this.getMonthBudget(this.currentMonth, this.currentYear);
-        
-        // Set SIP amount from budget if available, otherwise from settings
-        const sipAmountInput = document.getElementById('sipAmount');
-        if (sipAmountInput) {
-            if (monthBudget && monthBudget.SIP !== undefined) {
-                sipAmountInput.value = monthBudget.SIP;
-            } else {
-                sipAmountInput.value = this.settings.defaultSIP;
+        try {
+            // Get current month's budget for updated values
+            const monthBudget = this.getMonthBudget(this.currentMonth, this.currentYear);
+            
+            // Set SIP amount from budget if available, otherwise from settings
+            const sipAmountInput = document.getElementById('sipAmount');
+            if (sipAmountInput) {
+                if (monthBudget && monthBudget.SIP !== undefined) {
+                    sipAmountInput.value = monthBudget.SIP;
+                } else {
+                    sipAmountInput.value = this.settings.defaultSIP;
+                }
             }
-        }
-        
-        // Set Rent amount from budget if available, otherwise from settings
-        const rentAmountInput = document.getElementById('rentAmount');
-        if (rentAmountInput) {
-            if (monthBudget && monthBudget.Rent !== undefined) {
-                rentAmountInput.value = monthBudget.Rent;
-            } else {
-                rentAmountInput.value = this.settings.defaultRent;
+            
+            // Set Rent amount from budget if available, otherwise from settings
+            const rentAmountInput = document.getElementById('rentAmount');
+            if (rentAmountInput) {
+                if (monthBudget && monthBudget.Rent !== undefined) {
+                    rentAmountInput.value = monthBudget.Rent;
+                } else {
+                    rentAmountInput.value = this.settings.defaultRent;
+                }
             }
+        } catch (error) {
+            console.error('Error setting default bill values:', error);
         }
     }
 
@@ -796,6 +843,12 @@ class ExpenseTracker {
                 creditCardEnabledCheckbox.checked = this.settings.creditCardEnabled !== false;
             }
             
+            // Set SIP enabled checkbox
+            const sipEnabledCheckbox = document.getElementById('sipEnabled');
+            if (sipEnabledCheckbox) {
+                sipEnabledCheckbox.checked = this.settings.sipEnabled !== false;
+            }
+            
             // Calculate and set default budget (read-only)
             const defaultBudgetInput = document.getElementById('defaultBudget');
             if (defaultBudgetInput) {
@@ -807,6 +860,7 @@ class ExpenseTracker {
             console.error('Error initializing settings form:', error);
         }
     }
+
     
     initAnalysisFilters() {
         try {
@@ -965,6 +1019,7 @@ class ExpenseTracker {
     }
     
     // Event listeners setup
+// Event listeners setup
     setupEventListeners() {
         try {
             // Navigation event listeners
@@ -1011,7 +1066,7 @@ class ExpenseTracker {
             const initialCashBalanceInput = document.getElementById('initialCashBalance');
             const initialBankBalanceInput = document.getElementById('initialBankBalance');
             const monthlyBudgetInput = document.getElementById('monthlyBudget');
-    
+
             if (initialCashBalanceInput && initialBankBalanceInput && monthlyBudgetInput) {
                 // Function to update monthly budget when cash or bank is changed
                 const updateTotal = () => {
@@ -1024,7 +1079,7 @@ class ExpenseTracker {
                 initialCashBalanceInput.addEventListener('input', updateTotal);
                 initialBankBalanceInput.addEventListener('input', updateTotal);
             }
-    
+
             // Update budget button
             const updateBudgetBtn = document.getElementById('updateBudgetBtn');
             if (updateBudgetBtn) {
@@ -1055,7 +1110,7 @@ class ExpenseTracker {
                 });
             }
             
-            // UPDATED: Download analysis button to handle async PDF generation
+            // Download analysis button
             const downloadAnalysisBtn = document.getElementById('downloadAnalysisBtn');
             if (downloadAnalysisBtn) {
                 downloadAnalysisBtn.addEventListener('click', async () => {
@@ -1066,34 +1121,6 @@ class ExpenseTracker {
                         this.downloadAnalysisCSV();
                     }
                 });
-            }
-            
-            // NEW: Add simplified download options to analysis page
-            const downloadSection = document.querySelector('.card-body:has(#downloadAnalysisBtn)');
-            if (downloadSection && !document.getElementById('downloadCsv')) {
-                // Remove any existing download format options
-                const existingOptions = downloadSection.querySelectorAll('input[name="downloadFormat"], input[name="fileType"]');
-                existingOptions.forEach(option => option.closest('.form-check')?.remove());
-                
-                // Add new simplified options
-                const downloadOptionsHTML = `
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="radio" name="downloadFormat" id="downloadCsv" value="csv" checked>
-                    <label class="form-check-label" for="downloadCsv">
-                        Download as CSV (All Data)
-                    </label>
-                </div>
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="radio" name="downloadFormat" id="downloadPdf" value="pdf">
-                    <label class="form-check-label" for="downloadPdf">
-                        Download as PDF (Tables & Visualizations)
-                    </label>
-                </div>
-                `;
-                
-                const fileTypeDiv = document.createElement('div');
-                fileTypeDiv.innerHTML = downloadOptionsHTML;
-                downloadSection.insertBefore(fileTypeDiv, document.getElementById('downloadAnalysisBtn'));
             }
             
             // Expense form submission handlers
@@ -1163,12 +1190,12 @@ class ExpenseTracker {
                         if (e.target.checked) {
                             // If checked ("Already Paid"), update the status without adding expense
                             const billType = formId === 'creditCardBill' ? 'Credit Card' :
-                                           formId === 'electricityBill' ? 'Electricity' :
-                                           formId === 'waterBill' ? 'Water Bill' :
-                                           formId === 'laundry' ? 'Laundry' :
-                                           formId === 'sip' ? 'SIP' :
-                                           formId === 'rent' ? 'Rent' : '';
-                                           
+                                        formId === 'electricityBill' ? 'Electricity' :
+                                        formId === 'waterBill' ? 'Water Bill' :
+                                        formId === 'laundry' ? 'Laundry' :
+                                        formId === 'sip' ? 'SIP' :
+                                        formId === 'rent' ? 'Rent' : '';
+                                        
                             if (billType) {
                                 const date = new Date();
                                 const month = date.toLocaleString('default', { month: 'long' });
@@ -1253,6 +1280,7 @@ class ExpenseTracker {
                     const defaultBankBalance = parseFloat(document.getElementById('defaultBankBalance')?.value) || 8000;
                     const defaultSavingsGoal = parseFloat(document.getElementById('defaultSavingsGoal')?.value) || 1000;
                     const creditCardEnabled = document.getElementById('creditCardEnabled')?.checked !== false;
+                    const sipEnabled = document.getElementById('sipEnabled')?.checked !== false;
                     
                     // Calculate default budget based on cash + bank balance
                     const defaultBudget = defaultCashBalance + defaultBankBalance;
@@ -1267,6 +1295,7 @@ class ExpenseTracker {
                     this.settings.defaultBudget = defaultBudget;
                     this.settings.defaultSavingsGoal = defaultSavingsGoal;
                     this.settings.creditCardEnabled = creditCardEnabled;
+                    this.settings.sipEnabled = sipEnabled;
                     
                     this.saveSettings();
                     
@@ -1319,12 +1348,16 @@ class ExpenseTracker {
                     // Update bill values with new defaults
                     this.setDefaultBillValues();
                     
-                    // Update credit card visibility
+                    // Update credit card and SIP visibility
                     this.updateCreditCardVisibility();
+                    this.updateSIPVisibility();
                     
                     // Update dashboard if needed
                     if (this.currentPage === 'dashboard') {
                         this.updateDashboard();
+                    } else if (this.currentPage === 'expenses') {
+                        // Refresh the expense page to show/hide SIP and credit card sections
+                        this.showPage('expenses');
                     }
                 });
             }
@@ -1397,6 +1430,16 @@ class ExpenseTracker {
                     }
                 });
             }
+
+            // Today's expenses modal - handle click on view details
+            const viewTodayExpensesBtn = document.querySelector('[data-bs-target="#todayExpensesModal"]');
+            if (viewTodayExpensesBtn) {
+                viewTodayExpensesBtn.addEventListener('click', () => {
+                    // Refresh today's expenses data when modal is opened
+                    this.updateTodayExpenses();
+                });
+            }
+
         } catch (error) {
             console.error('Error setting up event listeners:', error);
             this.showToast('Error setting up application. Please refresh the page.', 'error');
@@ -1441,6 +1484,11 @@ class ExpenseTracker {
                 this.updateAnalysisPage();
             } else if (pageName === 'dashboard') {
                 this.updateDashboard();
+            } else if (pageName === 'expenses') {
+                // Add this to update bill values when expenses page is shown
+                this.setDefaultBillValues();
+                this.updateSIPVisibility();  // We'll add this new method
+                this.updateCreditCardVisibility();
             }
         } catch (error) {
             console.error('Error showing page:', error);
@@ -1556,6 +1604,9 @@ class ExpenseTracker {
                 }
             }
             
+            // NEW: Calculate and display today's expenses
+            this.updateTodayExpenses();
+            
             // Update recent transactions
             this.updateRecentTransactions();
             
@@ -1568,6 +1619,224 @@ class ExpenseTracker {
         }
     }
     
+    setupTodayExpensesModal() {
+        try {
+            // Find the view details link
+            const viewDetailsLink = document.querySelector('[data-bs-target="#todayExpensesModal"]');
+            
+            if (viewDetailsLink) {
+                viewDetailsLink.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent default behavior
+                    
+                    // Update today's expenses data
+                    this.updateTodayExpenses();
+                    
+                    // Show modal using Bootstrap - proper initialization
+                    const todayExpensesModal = document.getElementById('todayExpensesModal');
+                    if (todayExpensesModal) {
+                        // Check if modal instance already exists
+                        let modalInstance = bootstrap.Modal.getInstance(todayExpensesModal);
+                        
+                        // If not, create a new one
+                        if (!modalInstance) {
+                            modalInstance = new bootstrap.Modal(todayExpensesModal, {
+                                backdrop: true,
+                                keyboard: true,
+                                focus: true
+                            });
+                        }
+                        
+                        modalInstance.show();
+                    }
+                });
+            }
+            
+            // Set up the close button event handlers
+            const closeButtons = document.querySelectorAll('[data-bs-dismiss="modal"]');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const modal = button.closest('.modal');
+                    if (modal) {
+                        const modalInstance = bootstrap.Modal.getInstance(modal);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                    }
+                });
+            });
+            
+            // Also set up the modal's show event handler as a backup
+            const todayExpensesModal = document.getElementById('todayExpensesModal');
+            if (todayExpensesModal) {
+                todayExpensesModal.addEventListener('show.bs.modal', () => {
+                    this.updateTodayExpenses();
+                });
+            }
+        } catch (error) {
+            console.error('Error setting up today\'s expenses modal:', error);
+        }
+    }
+
+
+    updateTodayExpenses() {
+        try {
+            const today = new Date();
+            const todayDateString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+            
+            // Filter expenses for today
+            const todayExpenses = this.expenses.filter(expense => {
+                const expenseDate = new Date(expense.Date);
+                return expenseDate.toISOString().split('T')[0] === todayDateString;
+            });
+            
+            // Calculate total amount spent today
+            const totalToday = todayExpenses.reduce((total, expense) => total + expense.Amount, 0);
+            
+            // Update the metric on the dashboard
+            const todaySpendElement = document.getElementById('todayExpenses');
+            if (todaySpendElement) {
+                todaySpendElement.textContent = `${this.settings.currency}${totalToday.toFixed(2)}`;
+            }
+            
+            // Prepare the detail content for the modal
+            let detailsHTML = '';
+            
+            if (todayExpenses.length > 0) {
+                // Category summary
+                detailsHTML += '<h5>Summary by Category</h5>';
+                detailsHTML += '<div class="table-responsive"><table class="table table-sm">';
+                detailsHTML += '<thead><tr><th>Category</th><th>Amount</th><th>Percentage</th></tr></thead><tbody>';
+                
+                // Group by category
+                const categoryTotals = {};
+                todayExpenses.forEach(expense => {
+                    if (!categoryTotals[expense.Category]) {
+                        categoryTotals[expense.Category] = 0;
+                    }
+                    categoryTotals[expense.Category] += expense.Amount;
+                });
+                
+                // Add categories to table
+                Object.entries(categoryTotals).forEach(([category, amount]) => {
+                    const percentage = ((amount / totalToday) * 100).toFixed(1);
+                    detailsHTML += `<tr>
+                        <td><span class="category-tag category-${category.toLowerCase()}">${category}</span></td>
+                        <td>${this.settings.currency}${amount.toFixed(2)}</td>
+                        <td>${percentage}%</td>
+                    </tr>`;
+                });
+                
+                detailsHTML += '</tbody></table></div>';
+                
+                // Add chart container
+                detailsHTML += '<div class="mt-4 mb-4"><h5>Category Distribution</h5><div style="height: 250px;"><canvas id="todayCategoryChart"></canvas></div></div>';
+                
+                // Individual transactions
+                detailsHTML += '<h5 class="mt-3">All Transactions</h5>';
+                detailsHTML += '<div class="table-responsive"><table class="table table-sm">';
+                detailsHTML += '<thead><tr><th>Category</th><th>Description</th><th>Amount</th><th>Payment</th></tr></thead><tbody>';
+                
+                todayExpenses.forEach(expense => {
+                    detailsHTML += `<tr>
+                        <td><span class="category-tag category-${expense.Category.toLowerCase()}">${expense.Subcategory}</span></td>
+                        <td>${expense.Description}</td>
+                        <td>${this.settings.currency}${expense.Amount.toFixed(2)}</td>
+                        <td>${expense.PaymentMethod}</td>
+                    </tr>`;
+                });
+                
+                detailsHTML += '</tbody></table></div>';
+            } else {
+                detailsHTML = '<p class="text-center">No expenses recorded for today.</p>';
+            }
+            
+            // Update the modal content
+            const todayExpensesModalBody = document.getElementById('todayExpensesModalBody');
+            if (todayExpensesModalBody) {
+                todayExpensesModalBody.innerHTML = detailsHTML;
+                
+                // Initialize the pie chart if there are expenses
+                if (todayExpenses.length > 0) {
+                    setTimeout(() => {
+                        const chartCanvas = document.getElementById('todayCategoryChart');
+                        if (chartCanvas) {
+                            // Group by category for the chart
+                            const categoryTotals = {};
+                            todayExpenses.forEach(expense => {
+                                if (!categoryTotals[expense.Category]) {
+                                    categoryTotals[expense.Category] = 0;
+                                }
+                                categoryTotals[expense.Category] += expense.Amount;
+                            });
+                            
+                            // Prepare data for chart
+                            const categories = Object.keys(categoryTotals);
+                            const values = Object.values(categoryTotals);
+                            
+                            // Color mapping for categories
+                            const colorMap = {
+                                Food: 'rgba(54, 162, 235, 0.8)',
+                                Transportation: 'rgba(255, 99, 132, 0.8)',
+                                Bills: 'rgba(75, 192, 192, 0.8)',
+                                Services: 'rgba(0, 204, 204, 0.8)',
+                                Entertainment: 'rgba(255, 159, 64, 0.8)',
+                                Miscellaneous: 'rgba(153, 102, 255, 0.8)'
+                            };
+                            
+                            const colors = categories.map(category => colorMap[category] || 'rgba(201, 203, 207, 0.8)');
+                            
+                            // Create chart
+                            const ctx = chartCanvas.getContext('2d');
+                            if (this.chartInstances.todayCategoryChart) {
+                                this.chartInstances.todayCategoryChart.destroy();
+                            }
+                            
+                            this.chartInstances.todayCategoryChart = new Chart(ctx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: categories,
+                                    datasets: [{
+                                        data: values,
+                                        backgroundColor: colors,
+                                        borderColor: 'white',
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            position: 'right',
+                                            labels: {
+                                                font: {
+                                                    size: 12
+                                                },
+                                                padding: 20
+                                            }
+                                        },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: (context) => {
+                                                    const value = context.raw;
+                                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                                    const percentage = Math.round((value / total) * 100);
+                                                    return `${context.label}: ${this.settings.currency}${value.toFixed(2)} (${percentage}%)`;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }, 100); // Small delay to ensure the canvas is in the DOM
+                }
+            }
+        } catch (error) {
+            console.error('Error updating today\'s expenses:', error);
+        }
+    }
+
     // Add this new method to calculate current balances
     getCurrentBalances(month, year) {
         try {
@@ -1631,7 +1900,6 @@ class ExpenseTracker {
         }
     }
     
-    
     // Calculate metrics for each payment method
     calculatePaymentMethodMetrics(month, year) {
         try {
@@ -1678,6 +1946,95 @@ class ExpenseTracker {
                 creditCardTotal: 0,
                 cashBalance: this.settings.initialCashBalance
             };
+        }
+    }
+
+    createNewMonthBudgetWithSIPPaid(month, year) {
+        try {
+            const newBudget = {
+                Month: month,
+                Year: year,
+                TotalBudget: this.settings.defaultCashBalance + this.settings.defaultBankBalance,
+                SIP: this.settings.defaultSIP,
+                Rent: this.settings.defaultRent,
+                CreditCard: 0,
+                Electricity: 0,
+                WaterBill: 0,
+                Laundry: 0,
+                CreditCardPaid: false,
+                ElectricityPaid: false,
+                WaterBillPaid: false,
+                LaundryPaid: false,
+                SIPPaid: true, // Mark SIP as paid
+                RentPaid: false,
+                SavingsGoal: this.settings.defaultSavingsGoal,
+                HasSavingsGoal: false,
+                CreditCardBalance: this.settings.defaultCreditLimit,
+                CreditCardUsed: 0,
+                PreviousMonthCredit: 0,
+                initialCashBalance: this.settings.defaultCashBalance,
+                initialBankBalance: this.settings.defaultBankBalance
+            };
+            
+            this.budgets.push(newBudget);
+            this.saveData();
+            
+            return newBudget;
+        } catch (error) {
+            console.error('Error creating new month budget with SIP paid:', error);
+            return null;
+        }
+    }
+
+    updateSIPVisibility() {
+        try {
+            const sipEnabled = this.settings.sipEnabled;
+            
+            // Find SIP card in the bills tab
+            const sipCard = document.querySelector('.card-body:has(h5.card-title:contains("SIP Payment"))');
+            if (sipCard) {
+                const parentCol = sipCard.closest('.col-md-6');
+                if (parentCol) {
+                    parentCol.style.display = sipEnabled ? '' : 'none';
+                }
+            }
+            
+            // If SIP is disabled, IMMEDIATELY mark it as paid in the current month's budget
+            if (!sipEnabled) {
+                // Force update the checkbox visually first
+                const sipPaidCheckbox = document.getElementById('sipPaid');
+                if (sipPaidCheckbox) {
+                    sipPaidCheckbox.checked = true;
+                    
+                    // Manually trigger the change event to activate the form toggle
+                    const changeEvent = new Event('change', { bubbles: true });
+                    sipPaidCheckbox.dispatchEvent(changeEvent);
+                }
+                
+                // Force hide the SIP form
+                const sipForm = document.getElementById('sipForm');
+                if (sipForm) {
+                    sipForm.classList.add('d-none');
+                }
+                
+                // Update budget data to mark SIP as paid for current month
+                const currentMonth = this.currentMonth;
+                const currentYear = this.currentYear;
+                
+                let monthBudget = this.getMonthBudget(currentMonth, currentYear);
+                if (monthBudget) {
+                    monthBudget.SIPPaid = true;
+                    this.saveData();
+                } else {
+                    // Create a new budget with SIP already paid if it doesn't exist
+                    this.createNewMonthBudgetWithSIPPaid(currentMonth, currentYear);
+                }
+                
+                // Show confirmation
+                this.showToast('SIP has been marked as paid automatically.', 'info');
+            }
+        } catch (error) {
+            console.error('Error updating SIP visibility:', error);
         }
     }
     
@@ -2481,7 +2838,7 @@ class ExpenseTracker {
                             billType.toLowerCase().replace(' ', '') + 'BillPaid';
             
             const paidCheckbox = document.getElementById(checkboxId);
-            const alreadyPaid = paidCheckbox ? paidCheckbox.checked : false;
+            let alreadyPaid = paidCheckbox ? paidCheckbox.checked : false;
             
             // If already paid, just update the status and don't add expense
             if (alreadyPaid) {
@@ -2592,10 +2949,13 @@ class ExpenseTracker {
             // Disable the form
             this.toggleBillPaymentForm(formId, true);
             
-            // Update checkbox
+            // Update checkbox - this should fix the credit card not marking as paid
             if (paidCheckbox) {
                 paidCheckbox.checked = true;
             }
+            
+            // Make sure the bill payment status is reflected in the UI
+            this.updateBillPaymentStatus();
         } catch (error) {
             console.error('Error adding bill expense:', error);
             this.showToast('Error adding bill expense.', 'error');
@@ -5118,4 +5478,133 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Error initializing the application. Please refresh the page and try again.');
     }
     addWarningStyles()
+});
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the "View Details" link
+    const viewDetailsLink = document.querySelector('.view-details-link');
+    
+    if (viewDetailsLink) {
+        // Remove any existing attributes and event listeners
+        const newLink = viewDetailsLink.cloneNode(true);
+        viewDetailsLink.parentNode.replaceChild(newLink, viewDetailsLink);
+        
+        // Remove modal attributes
+        newLink.removeAttribute('data-bs-toggle');
+        newLink.removeAttribute('data-bs-target');
+        
+        // Add click handler to redirect to analysis page
+        newLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Set a flag in sessionStorage to indicate we're viewing today's data
+            sessionStorage.setItem('viewTodayOnly', 'true');
+            
+            // Redirect to analysis page
+            const analysisLink = document.querySelector('[data-page="analysis"]');
+            if (analysisLink) {
+                analysisLink.click();
+            } else {
+                // Fallback if the normal navigation doesn't work
+                window.expenseTracker.showPage('analysis');
+            }
+        });
+    }
+    
+    // Modify the updateAnalysisPage method to check for the today-only flag
+    const originalUpdateAnalysisPage = window.expenseTracker.updateAnalysisPage;
+    
+    window.expenseTracker.updateAnalysisPage = function() {
+        // Check if we're coming from the "View Details" link
+        const viewTodayOnly = sessionStorage.getItem('viewTodayOnly');
+        
+        if (viewTodayOnly === 'true') {
+            // Set date range to today only
+            const dateRangeFilter = document.getElementById('dateRangeFilter');
+            if (dateRangeFilter) {
+                // Create a custom option for "Today only"
+                let todayOption = document.querySelector('option[value="today"]');
+                
+                if (!todayOption) {
+                    todayOption = document.createElement('option');
+                    todayOption.value = 'today';
+                    todayOption.textContent = 'Today Only';
+                    dateRangeFilter.appendChild(todayOption);
+                }
+                
+                dateRangeFilter.value = 'today';
+                
+                // Trigger any change handlers
+                const event = new Event('change');
+                dateRangeFilter.dispatchEvent(event);
+            }
+            
+            // Clear the flag after using it
+            sessionStorage.removeItem('viewTodayOnly');
+        }
+        
+        // Call the original method
+        originalUpdateAnalysisPage.apply(this, arguments);
+    };
+    
+    // Modify the dateRangeFilter change handler to handle "today" option
+    const dateRangeFilter = document.getElementById('dateRangeFilter');
+    if (dateRangeFilter) {
+        // Store original change handler
+        const originalChangeHandler = dateRangeFilter.onchange;
+        
+        // Add our handler
+        dateRangeFilter.addEventListener('change', function(e) {
+            if (e.target.value === 'today') {
+                // Set date range to today only
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayFormatted = `${year}-${month}-${day}`;
+                
+                // If we have custom date fields, set them to today
+                const startDateInput = document.getElementById('startDate');
+                const endDateInput = document.getElementById('endDate');
+                
+                if (startDateInput && endDateInput) {
+                    startDateInput.value = todayFormatted;
+                    endDateInput.value = todayFormatted;
+                    
+                    // Show the custom date fields since we're essentially using custom dates
+                    startDateInput.style.display = 'block';
+                    endDateInput.style.display = 'block';
+                    
+                    // Manually set dateRangeFilter to custom to ensure proper filtering logic
+                    e.target.value = 'custom';
+                }
+            }
+            
+            // Call original handler if it exists
+            if (typeof originalChangeHandler === 'function') {
+                originalChangeHandler(e);
+            }
+        });
+    }
+    
+    // When leaving the analysis page, reset the date filter to default
+    document.querySelectorAll('[data-page]').forEach(link => {
+        if (link.getAttribute('data-page') !== 'analysis') {
+            link.addEventListener('click', function() {
+                // Reset date filter to default when navigating away from analysis page
+                const dateRangeFilter = document.getElementById('dateRangeFilter');
+                if (dateRangeFilter) {
+                    // Remove today option if it exists
+                    const todayOption = dateRangeFilter.querySelector('option[value="today"]');
+                    if (todayOption) {
+                        todayOption.remove();
+                    }
+                    
+                    // Reset to default (this month)
+                    dateRangeFilter.value = 'thisMonth';
+                }
+            });
+        }
+    });
 });
