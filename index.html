@@ -63,7 +63,7 @@
             
             <!-- Budget Status -->
             <div class="row mb-4">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <div class="metric-card">
                         <div class="label">Remaining Budget</div>
                         <div class="value" id="remainingBudget">₹0.00</div>
@@ -72,18 +72,33 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <div class="metric-card">
                         <div class="label">Daily Allowance</div>
                         <div class="value" id="dailyAllowance">₹0.00</div>
                         <div class="text-light"><small id="daysLeft">0 days left</small></div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <div class="metric-card">
                         <div class="label">Budget Used</div>
                         <div class="value" id="budgetUsed">0%</div>
                         <div class="text-light"><small id="totalBudget">Total: ₹0</small></div>
+                    </div>
+                </div>
+                <!-- New Today's Expenses Metric -->
+                <div class="col-md-3 mb-3">
+                    <div class="metric-card">
+                        <div class="label">Today's Expenses</div>
+                        <div class="value" id="todayExpenses">₹0.00</div>
+                        <div class="text-light">
+                            <small>
+                                <a href="#" class="view-details-link">
+                                    <i class="fas fa-search-dollar me-1"></i>View Details
+                                </a>
+                            </small>
+                        </div>
+                        
                     </div>
                 </div>
             </div>
@@ -1148,6 +1163,13 @@
                                 <label class="form-check-label" for="creditCardEnabled">Enable Credit Card</label>
                             </div>
                             <small class="text-muted">When disabled, credit card options will be hidden</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="sipEnabled" checked>
+                                <label class="form-check-label" for="sipEnabled">Enable SIP</label>
+                            </div>
+                            <small class="text-muted">When disabled, SIP options will be hidden</small>
                         </div>
                     </div>
                     <button class="btn btn-primary" id="saveDefaultsBtn">
